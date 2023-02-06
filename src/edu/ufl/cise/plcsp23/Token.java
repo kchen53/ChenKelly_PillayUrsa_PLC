@@ -3,11 +3,7 @@ import java.util.*;
 
 public class Token {
 
-    public record SourceLocation(int line, int column) {
-		Map<Integer, Integer> location = new HashMap<Integer, Integer>();
-		location.put(new Integer(line), new Integer(column));
-
-	}
+    public record SourceLocation(int line, int column) {}
 	
 	public static enum Kind {
 		IDENT,
@@ -91,7 +87,8 @@ public class Token {
 	 * @return Line number and column of this token.  
 	 */
 	public SourceLocation getSourceLocation() {
-		return SourceLocation(pos, length);
+		SourceLocation lineCol = new SourceLocation(pos, length);
+        return lineCol;
 	}
 	
 	/** Returns the kind of this Token
@@ -108,8 +105,12 @@ public class Token {
 	 * @return
 	 */
 	public String getTokenString(){
-		
+		String tokenString = "";
 
+        for(int i = 0; i < source.length; i++){
+            tokenString += source[i];
+        }
+
+        return tokenString;
 	}
-    
 }
