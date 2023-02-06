@@ -14,8 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
-
 import org.junit.jupiter.api.Test;
 
 import edu.ufl.cise.plcsp23.IToken.Kind;
@@ -208,7 +206,7 @@ class TestScanner_starter {
 	void illegalLineTermInStringLiteral() throws LexicalException {
 		String input = """
 				"\\n"  ~ this one passes the escape sequence--it is OK
-				"\n"   ~ this on passes the LF, it is illegal.
+				"\n"   ~ this one passes the LF, it is illegal.
 				""";
 		IScanner scanner = CompilerComponentFactory.makeScanner(input);
 		checkString("\"\\n\"","\n", new SourceLocation(1,1), scanner.next());
