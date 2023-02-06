@@ -46,5 +46,9 @@ public class Token implements IToken {
 	public String getTokenString(){
 		return new String(source, pos, length);
 	}
-    
+
+    @Override 
+    public String toString() {
+        return kind + "=" + getTokenString() + " located at" + pos + "," + length;
+    }
 }
