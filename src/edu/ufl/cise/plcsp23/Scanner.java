@@ -10,6 +10,7 @@ public class Scanner implements IScanner {
 
     int pos; //current position
     int line; //current line
+    int column; //current column
     char ch; //current char
 
     //constructor
@@ -18,13 +19,15 @@ public class Scanner implements IScanner {
         inputChars = Arrays.copyOf(input.toCharArray(), input.length() + 1);
         pos = 0;
         line = 1;
+        column = 1;
         ch = inputChars[pos];
     }
 
 
     @Override
     public Token next() throws LexicalException {
-        return scanToken();
+        nextChar();
+        return scanToken(input);
     }
 
     private enum State {
@@ -75,6 +78,7 @@ public class Scanner implements IScanner {
     //move to next char in input
     private void nextChar(){
         pos += 1;
+        column += 1;
         ch = inputChars[pos];
     }
 
@@ -115,6 +119,7 @@ public class Scanner implements IScanner {
                         //newline
                         case '\n' -> {
                             line++;
+                            column = 1;
                             nextChar();
                         }
 
@@ -345,7 +350,7 @@ public class Scanner implements IScanner {
                         String text = input.substring(tokenStart, tokenStart + length);
                         Kind kind = reservedWords.get(text);
                         if (kind == null) { 
-                            kind = IDENT; 
+                            kind = Kind.IDENT; 
                         }
                         return new Token(kind, tokenStart, length, inputChars); 
                     }
