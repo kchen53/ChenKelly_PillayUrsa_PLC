@@ -1,5 +1,4 @@
 package edu.ufl.cise.plcsp23;
-import java.util.*;
 
 public class Token {
 
@@ -113,4 +112,9 @@ public class Token {
 
         return tokenString;
 	}
+
+    @Override 
+    public String toString() {
+        return kind + "=" + getTokenString() + " located at" + pos + "," + length;
+    }
 }
