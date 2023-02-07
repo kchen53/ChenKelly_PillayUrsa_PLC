@@ -248,4 +248,109 @@ class TestScanner_starter {
 		});
 	}
 
+	@Test
+	void mathEquation2() throws LexicalException {
+		String input = """
+				5 * 5 = 25
+				25 > 10
+				7 - 3 = 4
+				""";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		checkNUM_LIT(5, scanner.next());
+		checkToken(Kind.TIMES,"*", new SourceLocation(1,3), scanner.next());
+		checkNUM_LIT(5, scanner.next());
+		checkToken(Kind.ASSIGN,"=", new SourceLocation(1,7), scanner.next());
+		checkNUM_LIT(25, scanner.next());
+		checkNUM_LIT(25, scanner.next());
+		checkToken(Kind.GT,">", new SourceLocation(2,4), scanner.next());
+		checkNUM_LIT(10, scanner.next());
+		checkNUM_LIT(7, scanner.next());
+		checkToken(Kind.MINUS,"-", new SourceLocation(3,3), scanner.next());
+		checkNUM_LIT(3, scanner.next());
+		checkToken(Kind.ASSIGN,"=", new SourceLocation(3,7), scanner.next());
+		checkNUM_LIT(4, scanner.next());
+	}
+
+	@Test
+	void commentAndStringLitAndIdent() throws LexicalException {
+		String input = """
+				~test\rtest2
+				_342d + ~dsf 234
+				"string lit very lit"
+				""";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		checkToken(Kind.IDENT,"_342d", new SourceLocation(2,1), scanner.next());
+		checkToken(Kind.PLUS,"+", new SourceLocation(2,7), scanner.next());
+		checkString(input.substring(29, 50),"string lit very lit", new SourceLocation(3,1), scanner.next());
+		checkEOF(scanner.next());
+	}
+
+	@Test
+	void comment1() throws LexicalException {
+		String input = """
+				~test\rtest2
+				""";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		checkEOF(scanner.next());
+	}
+
+	@Test
+	void doOperatorsSeparateTokens() throws LexicalException {
+		String input = """
+				doesthis+work.for-you?
+				""";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		checkToken(Kind.IDENT,"doesthis", new SourceLocation(1,1), scanner.next()); 
+		checkToken(Kind.PLUS, scanner.next());
+		checkToken(Kind.IDENT,"work", new SourceLocation(1,10), scanner.next());
+		checkToken(Kind.DOT, scanner.next());
+		// for is NOT a reserved word, oddly enough
+		checkToken(Kind.IDENT,"for", new SourceLocation(1,15), scanner.next());
+		checkToken(Kind.MINUS, scanner.next());
+		checkToken(Kind.IDENT,"you", new SourceLocation(1,19), scanner.next());
+		checkToken(Kind.QUESTION, scanner.next());
+	}
+
+	@Test
+	void reservedWordsWithAddedText() throws LexicalException {
+		String input = """
+				image imagee limage pixelx inty int stringz astring voida nill loadd load displayy ewrite write
+				xx yy aa rr XX YY ZZ x_cartt y_cartt xa_polar r_polar randd sinn cosss atann iff whilee
+				""";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+
+		checkToken(Kind.RES_image, scanner.next());
+		checkToken(Kind.IDENT,"imagee", new SourceLocation(1,7), scanner.next());
+		checkToken(Kind.IDENT,"limage", new SourceLocation(1,14), scanner.next());
+		checkToken(Kind.IDENT,"pixelx", new SourceLocation(1,21), scanner.next());
+		checkToken(Kind.IDENT,"inty", new SourceLocation(1,28), scanner.next());
+		checkToken(Kind.RES_int, scanner.next());
+		checkToken(Kind.IDENT,"stringz", new SourceLocation(1,37), scanner.next());
+		checkToken(Kind.IDENT,"astring", new SourceLocation(1,45), scanner.next());
+		checkToken(Kind.IDENT,"voida", new SourceLocation(1,53), scanner.next());
+		checkToken(Kind.IDENT,"nill", new SourceLocation(1,59), scanner.next());
+		checkToken(Kind.IDENT,"loadd", new SourceLocation(1,64), scanner.next());
+		checkToken(Kind.RES_load, scanner.next());
+		checkToken(Kind.IDENT,"displayy", new SourceLocation(1,75), scanner.next());
+		checkToken(Kind.IDENT,"ewrite", new SourceLocation(1,84), scanner.next());
+		checkToken(Kind.RES_write, scanner.next());
+		checkToken(Kind.IDENT,"xx", new SourceLocation(2,1), scanner.next());
+		checkToken(Kind.IDENT,"yy", new SourceLocation(2,4), scanner.next());	
+		checkToken(Kind.IDENT,"aa", new SourceLocation(2,7), scanner.next());
+		checkToken(Kind.IDENT,"rr", new SourceLocation(2,10), scanner.next());
+		checkToken(Kind.IDENT,"XX", new SourceLocation(2,13), scanner.next());
+		checkToken(Kind.IDENT,"YY", new SourceLocation(2,16), scanner.next());
+		checkToken(Kind.IDENT,"ZZ", new SourceLocation(2,19), scanner.next());
+		checkToken(Kind.IDENT,"x_cartt", new SourceLocation(2,22), scanner.next());
+		checkToken(Kind.IDENT,"y_cartt", new SourceLocation(2,30), scanner.next());
+		checkToken(Kind.IDENT,"xa_polar", new SourceLocation(2,38), scanner.next());
+		checkToken(Kind.RES_r_polar, scanner.next());
+		checkToken(Kind.IDENT,"randd", new SourceLocation(2,55), scanner.next());
+		checkToken(Kind.IDENT,"sinn", new SourceLocation(2,61), scanner.next());
+		checkToken(Kind.IDENT,"cosss", new SourceLocation(2,66), scanner.next());
+		checkToken(Kind.IDENT,"atann", new SourceLocation(2,72), scanner.next());
+		checkToken(Kind.IDENT,"iff", new SourceLocation(2,78), scanner.next());
+		checkToken(Kind.IDENT,"whilee", new SourceLocation(2,82), scanner.next());
+	}
+
 }
