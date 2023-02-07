@@ -109,6 +109,14 @@ class TestScanner_starter {
 	}
 
 	@Test
+	void onlyWhiteSpace1() throws LexicalException {
+		String input = " \r\n \f \n";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		checkEOF(scanner.next());
+		checkEOF(scanner.next());  //repeated invocations of next after end reached should return EOF token
+	}
+
+	@Test
 	void numLits1() throws LexicalException {
 		String input = """
 				123
@@ -126,6 +134,16 @@ class TestScanner_starter {
 	//Too large should still throw LexicalException
 	void numLitTooBig() throws LexicalException {
 		String input = "999999999999999999999";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		assertThrows(LexicalException.class, () -> {
+			scanner.next();
+		});
+	}
+
+	@Test
+	//Too large should still throw LexicalException
+	void numLitTooBig2() throws LexicalException {
+		String input = "999999999999999999999999999999";
 		IScanner scanner = CompilerComponentFactory.makeScanner(input);
 		assertThrows(LexicalException.class, () -> {
 			scanner.next();
@@ -247,6 +265,178 @@ class TestScanner_starter {
 			IToken t = scanner.next();
 		});
 	}
+
+	@Test
+	void stringLiterals2() throws LexicalException {
+		String input = """
+				"hello" "hi"
+				""";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		checkString(input.substring(0, 7),"hello", new SourceLocation(1,1), scanner.next());
+		checkString(input.substring(8, 12),"hi", new SourceLocation(1,9), scanner.next());
+		checkEOF(scanner.next());
+	}
+
+	@Test
+	void allReservedWords() throws LexicalException {
+		/* reserved words: image | pixel | int | string | void | nil | load | display | write | x | y | a | r | X | Y | Z |
+x_cart | y_cart | a_polar | r_polar | rand | sin | cos | atan | if | while */
+		String input = """
+				image pixel int string void nil load display write x y a r X Y Z x_cart y_cart a_polar r_polar rand sin cos atan if while
+				""";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		checkToken(Kind.RES_image, scanner.next());
+		checkToken(Kind.RES_pixel, scanner.next());
+		checkToken(Kind.RES_int, scanner.next());
+		checkToken(Kind.RES_string, scanner.next());
+		checkToken(Kind.RES_void, scanner.next());
+		checkToken(Kind.RES_nil, scanner.next());
+		checkToken(Kind.RES_load, scanner.next());
+		checkToken(Kind.RES_display, scanner.next());
+		checkToken(Kind.RES_write, scanner.next());
+		checkToken(Kind.RES_x, scanner.next());
+		checkToken(Kind.RES_y, scanner.next());
+		checkToken(Kind.RES_a, scanner.next());
+		checkToken(Kind.RES_r, scanner.next());
+		checkToken(Kind.RES_X, scanner.next());
+		checkToken(Kind.RES_Y, scanner.next());
+		checkToken(Kind.RES_Z, scanner.next());
+		checkToken(Kind.RES_x_cart, scanner.next());
+		checkToken(Kind.RES_y_cart, scanner.next());
+		checkToken(Kind.RES_a_polar, scanner.next());
+		checkToken(Kind.RES_r_polar, scanner.next());
+		checkToken(Kind.RES_rand, scanner.next());
+		checkToken(Kind.RES_sin, scanner.next());
+		checkToken(Kind.RES_cos, scanner.next());
+		checkToken(Kind.RES_atan, scanner.next());
+		checkToken(Kind.RES_if, scanner.next());
+		checkToken(Kind.RES_while, scanner.next());
+	}
+
+	@Test
+void andNothingButComments() throws LexicalException {
+    String input = """
+            ~jerry
+            ~can
+            ~move
+            ~if
+            ~he's
+            ~not
+            ~@#$%&#^%&@
+            ~tired
+            """;
+    IScanner scanner = CompilerComponentFactory.makeScanner(input);
+    checkEOF(scanner.next());
+}
+
+@Test
+void andNumLitsZeroes() throws LexicalException {
+    String input = """
+            000
+            00
+            001
+            10 0
+            """;
+    IScanner scanner = CompilerComponentFactory.makeScanner(input);
+    checkNUM_LIT(0, scanner.next());
+    checkNUM_LIT(0, scanner.next());
+    checkNUM_LIT(0, scanner.next());
+    checkNUM_LIT(0, scanner.next());
+    checkNUM_LIT(0, scanner.next());
+    checkNUM_LIT(0, scanner.next());
+    checkNUM_LIT(0, scanner.next());
+    checkNUM_LIT(1, scanner.next());
+    checkNUM_LIT(10, scanner.next());
+    checkNUM_LIT(0, scanner.next());
+    checkEOF(scanner.next());
+}
+
+@Test
+void andIdentsWithNumLits() throws LexicalException {
+    String input = """
+            0f0f0
+            12if21
+            12if 21
+            00 if 12
+            """;
+    IScanner scanner = CompilerComponentFactory.makeScanner(input);
+    checkNUM_LIT(0, scanner.next());
+    checkToken(Kind.IDENT, "f0f0", new SourceLocation(1, 2), scanner.next());
+    checkNUM_LIT(12, scanner.next());
+    checkToken(Kind.IDENT, "if21", new SourceLocation(2, 3), scanner.next());
+    checkNUM_LIT(12, scanner.next());
+    checkToken(Kind.RES_if, "if", new SourceLocation(3, 3), scanner.next());
+    checkNUM_LIT(21, scanner.next());
+    checkNUM_LIT(0, scanner.next());
+    checkNUM_LIT(0, scanner.next());
+    checkToken(Kind.RES_if, "if", new SourceLocation(4, 4), scanner.next());
+    checkNUM_LIT(12, scanner.next());
+    checkEOF(scanner.next());
+}
+
+@Test
+void andOperators() throws LexicalException {
+    String input = """
+            =&&
+            *****
+            ~====
+            ||?:,|
+            """;
+    IScanner scanner = CompilerComponentFactory.makeScanner(input);
+    checkToken(Kind.ASSIGN, scanner.next());
+    checkToken(Kind.AND, scanner.next());
+    checkToken(Kind.EXP, scanner.next());
+    checkToken(Kind.EXP, scanner.next());
+    checkToken(Kind.TIMES, scanner.next());
+    checkToken(Kind.OR, scanner.next());
+    checkToken(Kind.QUESTION, scanner.next());
+    checkToken(Kind.COLON, scanner.next());
+    checkToken(Kind.COMMA, scanner.next());
+    checkToken(Kind.BITOR, scanner.next());
+    checkEOF(scanner.next());
+}
+
+@Test
+void andEmptyStrings() throws LexicalException {
+    String input = """
+            \"\"\"\"\"\"\"
+            """;
+    IScanner scanner = CompilerComponentFactory.makeScanner(input);
+    checkString("", scanner.next());
+    checkString("", scanner.next());
+    checkString("", scanner.next());
+    assertThrows(LexicalException.class, () -> {
+        scanner.next();
+    });
+}
+
+
+
+@Test
+void andMoreIllegalChars() throws LexicalException {
+    String input1 = "hey! `";
+    IScanner scanner1 = CompilerComponentFactory.makeScanner(input1);
+    checkIdent("hey", scanner1.next());
+    checkToken(Kind.BANG, scanner1.next());
+    assertThrows(LexicalException.class, () -> {
+        scanner1.next();
+    });
+
+    String input2 = "stop \\";
+    IScanner scanner2 = CompilerComponentFactory.makeScanner(input2);
+    checkIdent("stop", scanner2.next());
+    assertThrows(LexicalException.class, () -> {
+        scanner2.next();
+    });
+
+    String input3 = "noo '";
+    IScanner scanner3 = CompilerComponentFactory.makeScanner(input3);
+    checkIdent("noo", scanner3.next());
+    assertThrows(LexicalException.class, () -> {
+        scanner3.next();
+    });
+}
+
 
 	@Test
 	void mathEquation2() throws LexicalException {
