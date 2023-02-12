@@ -19,6 +19,8 @@ public class StringLitToken extends Token implements IStringLitToken {
                     value += '\n';
                 } else if (myString.charAt(i) == 't') {
                     value += '\t';
+                } else if (myString.charAt(i) == 'b') {
+                    value += '\b';
                 } else if (myString.charAt(i) == 'r') {
                     value += '\r';
                 } else if (myString.charAt(i) == 'f') {

@@ -543,4 +543,24 @@ void andMoreIllegalChars() throws LexicalException {
 		checkToken(Kind.IDENT,"whilee", new SourceLocation(2,82), scanner.next());
 	}
 
+	@Test
+	void stringEscape() throws LexicalException {
+		String input = """
+			"\\b \\t \\n \\r \\" \\\\"
+			""";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		checkString(input.substring(0, 19),"\b \t \n \r \" \\", new SourceLocation(1,1), scanner.next());
+		checkEOF(scanner.next());
+	}
+
+	@Test
+	void nonTerminatedString() throws LexicalException {
+		String input = """
+			"abc""";
+		IScanner scanner = CompilerComponentFactory.makeScanner(input);
+		assertThrows(LexicalException.class, () -> {
+			scanner.next();
+		});
+	}
+
 }
