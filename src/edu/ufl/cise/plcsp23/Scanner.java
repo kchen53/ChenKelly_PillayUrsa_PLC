@@ -344,13 +344,15 @@ public class Scanner implements IScanner {
                 case IN_STRING_LIT -> {
                     if (ch == '\\') {
                         nextChar();
-                        if (ch != 'r' && ch != 't' && ch != 'f' && ch != '\\' && ch != '"' && ch != 'n') {
+                        if (ch != 'b' && ch != 'r' && ch != 't' && ch != 'f' && ch != '\\' && ch != '"' && ch != 'n') {
                             throw new LexicalException("illegal escape sequence");
                         } else {
                             nextChar();
                         }
                     } else if (ch == '\n') {
                         throw new LexicalException("illegal escape sequence");
+                    } else if (ch == 0) {
+                        throw new LexicalException("non-terminated string");
                     } else if (ch != '"') {
                         nextChar();
                     } else {
