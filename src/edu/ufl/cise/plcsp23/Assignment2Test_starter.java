@@ -67,6 +67,7 @@ class Assignment2Test_starter {
 	 */
 	NumLitExpr checkNumLit(AST e, int value) {
 		assertThat("",e, instanceOf( NumLitExpr.class));
+		//Maybe change to this: assertTrue(e instanceOf NumLitExpr);
 		NumLitExpr ne = (NumLitExpr)e;
 		assertEquals(value, ne.getValue());
 		return ne;

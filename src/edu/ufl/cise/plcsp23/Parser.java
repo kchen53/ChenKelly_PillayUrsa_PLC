@@ -2,6 +2,7 @@ package edu.ufl.cise.plcsp23;
 import edu.ufl.cise.plcsp23.IToken.Kind;
 import edu.ufl.cise.plcsp23.ast.AST;
 import edu.ufl.cise.plcsp23.ast.BinaryExpr;
+import edu.ufl.cise.plcsp23.ast.ConditionalExpr;
 import edu.ufl.cise.plcsp23.ast.Expr;
 import edu.ufl.cise.plcsp23.ast.IdentExpr;
 import edu.ufl.cise.plcsp23.ast.NumLitExpr;
@@ -33,9 +34,137 @@ public class Parser implements IParser {
         t = scan.next();
     }
 
+    Expr expr() throws SyntaxException, LexicalException{
+        IToken firstToken = t;  //current token
+        Expr left = null;       //left side of binary expression
+        Kind op = null;         //operator
+        Expr right = null;      //right side of binary expression
 
-    Expr expr() { 
-        
+        left = conditional_expr();
+        right = or_expr();
+
+    }
+
+    Expr conditional_expr() throws SyntaxException, LexicalException{
+        IToken firstToken = t;  //current token
+        Expr e = null;       //binary expression
+        Kind left = null;         //operator
+        Kind right = null;         //operator
+
+        left = Kind.RES_if;
+        e = expr();
+
+        //return conditional expression object for AST
+        return new ConditionalExpr(firstToken, e, e, e);
+    }
+
+    Expr or_expr() throws SyntaxException, LexicalException {
+        IToken firstToken = t;  //current token
+        Expr left = null;       //left side of binary expression
+        Kind op = null;         //operator
+        Expr right = null;      //right side of binary expression
+
+        //left expression is an and expression
+        left = and_expr();
+
+        //if token is not | or || operator, return single and expression
+        if (!isKind(Kind.BITOR) && !isKind(Kind.OR)) {
+            return left;
+        }
+
+        //while next token is | or || operator, set kind to operator type and go to next token
+        while (isKind(Kind.BITOR) || isKind(Kind.OR)) {
+            if (isKind(Kind.BITOR)) {
+                op = Kind.BITOR;
+                consume();
+            } else if (isKind(Kind.OR)) {
+                op = Kind.OR;
+                consume();
+            }
+
+            //right expression is an and expression
+            right = and_expr();
+        }
+
+        //return binary expression object for AST
+        return new BinaryExpr(firstToken, left, op, right);
+    }
+
+    Expr and_expr() throws SyntaxException, LexicalException {
+        IToken firstToken = t;  //current token
+        Expr left = null;       //left side of binary expression
+        Kind op = null;         //operator
+        Expr right = null;      //right side of binary expression
+
+        //left expression is a comparison expression
+        left = compare_expr();
+
+        //if token is not & or && operator, return single comparision expression
+        if (!isKind(Kind.BITAND) && !isKind(Kind.AND)) {
+            return left;
+        }
+
+        //while next token is & or && operator, set kind to operator type and go to next token
+        while (isKind(Kind.BITAND) || isKind(Kind.AND)) {
+            if (isKind(Kind.BITAND)) {
+                op = Kind.BITAND;
+                consume();
+            } else if (isKind(Kind.AND)) {
+                op = Kind.AND;
+                consume();
+            }
+
+            //right expression is a comparison expression
+            right = compare_expr();
+        }
+
+        //return binary expression object for AST
+        return new BinaryExpr(firstToken, left, op, right);
+    }
+
+    Expr compare_expr() throws SyntaxException, LexicalException {
+
+        IToken firstToken = t;  //current token
+        Expr left = null;       //left side of binary expression
+        Kind op = null;         //operator
+        Expr right = null;      //right side of binary expression
+
+        //left expression is a power expression
+        left = power_expr();
+
+        //if token is not <, >, ==, <=, >= operator, return single power expression
+        if (!isKind(Kind.LT) && !isKind(Kind.GT) && !isKind(Kind.EQ) && !isKind(Kind.LE) && !isKind(Kind.GE)) {
+            return left;
+        }
+
+        //while next token is <, >, ==, <=, >= operator, set kind to operator type and go to next token
+        while (isKind(Kind.LT) || isKind(Kind.GT) || isKind(Kind.EQ) || isKind(Kind.LE) || isKind(Kind.GE)) {
+            if (isKind(Kind.LT)) {
+                op = Kind.LT;
+                consume();
+            } else if (isKind(Kind.GT)) {
+                op = Kind.GT;
+                consume();
+            }
+            else if (isKind(Kind.EQ)) {
+                op = Kind.EQ;
+                consume();
+            }
+            else if (isKind(Kind.LE)) {
+                op = Kind.LE;
+                consume();
+            }
+            else if (isKind(Kind.GE)) {
+                op = Kind.GE;
+                consume();
+            }
+
+            //right expression is power expression
+            right = power_expr();
+        }
+
+        //return binary expression object for AST
+        return new BinaryExpr(firstToken, left, op, right);
     }
 
     Expr power_expr() throws LexicalException, SyntaxException {
