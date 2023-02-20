@@ -10,14 +10,12 @@
 
 package edu.ufl.cise.plcsp23;
 
-import javax.swing.text.html.HTMLEditorKit.Parser;
-
 public class CompilerComponentFactory {
 	public static IScanner makeScanner(String input) {
 		return new Scanner(input);
 	}
 
-	public static IParser makeAssignment2Parser(String input) throws LexicalException {
+	public static IParser makeAssignment2Parser(String input) throws PLCException {
 		Scanner scanner = new Scanner(input);
 		return new Parser(scanner);
 	}

@@ -14,16 +14,14 @@ import edu.ufl.cise.plcsp23.ast.ZExpr;
 public class Parser implements IParser {
     IToken t;
     Scanner scan;
-    AST ast;
 
     public Parser(Scanner scanner) throws PLCException {
         scan = scanner;
+        t = scan.next();
     }
 
     public AST parse() throws PLCException {
-        t = scan.next();
-        
-        return ast;
+        return expr();
     }
 
     protected boolean isKind(Kind kind) {   //check kind of current token
@@ -34,28 +32,47 @@ public class Parser implements IParser {
         t = scan.next();
     }
 
-    Expr expr() throws SyntaxException, LexicalException{
-        IToken firstToken = t;  //current token
-        Expr left = null;       //left side of binary expression
-        Kind op = null;         //operator
-        Expr right = null;      //right side of binary expression
+    Expr expr() throws SyntaxException, LexicalException {
+        Expr e = null;
+        
+        //if expression starts with if, it is conditional expression, else it is or expression
+        if (isKind(Kind.RES_if)) {
+            e = conditional_expr();
+        } else {
+            e = or_expr();
+        }
 
-        left = conditional_expr();
-        right = or_expr();
-
+        return e;   //return expression
     }
 
     Expr conditional_expr() throws SyntaxException, LexicalException{
         IToken firstToken = t;  //current token
-        Expr e = null;       //binary expression
-        Kind left = null;         //operator
-        Kind right = null;         //operator
+        Expr e1 = null;       //three expressions in conditional expression
+        Expr e2 = null;
+        Expr e3 = null;
 
-        left = Kind.RES_if;
-        e = expr();
+        //check if expression contains if, ?, and ?, expression between each
+        if (isKind(Kind.RES_if)) {
+            consume();
+            e1 = expr();
+            if (isKind(Kind.QUESTION)) {
+                consume();
+                e2 = expr();
+                if (isKind(Kind.QUESTION)) {
+                    consume();
+                    e3 = expr();
+                } else {
+                    throw new SyntaxException("syntax error");
+                }
+            } else {
+                throw new SyntaxException("syntax error");
+            }
+        } else {
+            throw new SyntaxException("syntax error");
+        }
 
         //return conditional expression object for AST
-        return new ConditionalExpr(firstToken, e, e, e);
+        return new ConditionalExpr(firstToken, e1, e2, e3);
     }
 
     Expr or_expr() throws SyntaxException, LexicalException {
@@ -215,6 +232,11 @@ public class Parser implements IParser {
 
             //right expression is multiplicative expression
             right = mult_expr();
+
+            //if next token is + or - operator, new left side is whole expression
+            if (isKind(Kind.PLUS) || isKind(Kind.MINUS)) {
+                left = new BinaryExpr(firstToken, left, op, right);
+            }
         }
 
         //return binary expression object for AST
@@ -250,6 +272,11 @@ public class Parser implements IParser {
 
             //right expression is unary expression
             right = unary_expr();
+
+            //if next token is *, /, or % operator, new left side is whole expression
+            if (isKind(Kind.TIMES) || isKind(Kind.DIV) || isKind(Kind.MOD)) {
+                left = new BinaryExpr(firstToken, left, op, right);
+            }
         }
 
         //return binary expression object for AST
