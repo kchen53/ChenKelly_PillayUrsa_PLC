@@ -101,6 +101,10 @@ public class Parser implements IParser {
 
             //right expression is an and expression
             right = and_expr();
+
+            if (isKind(Kind.BITOR) || isKind(Kind.OR)) {
+                left = new BinaryExpr(firstToken, left, op, right);
+            }
         }
 
         //return binary expression object for AST
@@ -133,6 +137,10 @@ public class Parser implements IParser {
 
             //right expression is a comparison expression
             right = compare_expr();
+
+            if (isKind(Kind.BITAND) || isKind(Kind.AND)) {
+                left = new BinaryExpr(firstToken, left, op, right);
+            }
         }
 
         //return binary expression object for AST
@@ -178,6 +186,10 @@ public class Parser implements IParser {
 
             //right expression is power expression
             right = power_expr();
+
+            if (isKind(Kind.LT) || isKind(Kind.GT) || isKind(Kind.EQ) || isKind(Kind.LE) || isKind(Kind.GE)) {
+                left = new BinaryExpr(firstToken, left, op, right);
+            }
         }
 
         //return binary expression object for AST
