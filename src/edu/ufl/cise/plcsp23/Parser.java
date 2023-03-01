@@ -1,14 +1,28 @@
 package edu.ufl.cise.plcsp23;
 import edu.ufl.cise.plcsp23.IToken.Kind;
 import edu.ufl.cise.plcsp23.ast.AST;
+import edu.ufl.cise.plcsp23.ast.AssignmentStatement;
 import edu.ufl.cise.plcsp23.ast.BinaryExpr;
+import edu.ufl.cise.plcsp23.ast.Block;
+import edu.ufl.cise.plcsp23.ast.ColorChannel;
 import edu.ufl.cise.plcsp23.ast.ConditionalExpr;
+import edu.ufl.cise.plcsp23.ast.Dimension;
+import edu.ufl.cise.plcsp23.ast.ExpandedPixelExpr;
 import edu.ufl.cise.plcsp23.ast.Expr;
+import edu.ufl.cise.plcsp23.ast.Ident;
 import edu.ufl.cise.plcsp23.ast.IdentExpr;
+import edu.ufl.cise.plcsp23.ast.LValue;
 import edu.ufl.cise.plcsp23.ast.NumLitExpr;
+import edu.ufl.cise.plcsp23.ast.PixelFuncExpr;
+import edu.ufl.cise.plcsp23.ast.PixelSelector;
+import edu.ufl.cise.plcsp23.ast.PredeclaredVarExpr;
 import edu.ufl.cise.plcsp23.ast.RandomExpr;
+import edu.ufl.cise.plcsp23.ast.Statement;
 import edu.ufl.cise.plcsp23.ast.StringLitExpr;
 import edu.ufl.cise.plcsp23.ast.UnaryExpr;
+import edu.ufl.cise.plcsp23.ast.UnaryExprPostfix;
+import edu.ufl.cise.plcsp23.ast.WhileStatement;
+import edu.ufl.cise.plcsp23.ast.WriteStatement;
 import edu.ufl.cise.plcsp23.ast.ZExpr;
 
 public class Parser implements IParser {
@@ -330,6 +344,25 @@ public class Parser implements IParser {
         return new UnaryExpr(firstToken, op, e);
     }
 
+    Expr unary_expr_post() throws LexicalException, SyntaxException {
+        IToken firstToken = t;
+        Expr primary = null;
+        PixelSelector pixel = null;
+        ColorChannel color = null;
+
+        primary = primary_expr();
+
+        if (isKind(Kind.LSQUARE)) {
+            pixel = pixel_selector();
+        }
+
+        if (isKind(Kind.COLON)) {
+            color = channel_selector();
+        }
+
+        return new UnaryExprPostfix(firstToken, primary, pixel, color);
+    }
+
     Expr primary_expr() throws SyntaxException, LexicalException {
         IToken firstToken = t;  //save current token
         Expr e = null;          //initialize expression
@@ -358,10 +391,219 @@ public class Parser implements IParser {
             } else {
                 throw new SyntaxException("syntax error");
             }
+        } else if (isKind(Kind.RES_x)) {
+            e = new PredeclaredVarExpr(firstToken);
+            consume();
+        } else if (isKind(Kind.RES_y)) {
+            e = new PredeclaredVarExpr(firstToken);
+            consume();
+        } else if (isKind(Kind.RES_a)) {
+            e = new PredeclaredVarExpr(firstToken);
+            consume();
+        } else if (isKind(Kind.RES_r)) {
+            e = new PredeclaredVarExpr(firstToken);
+            consume();
+        } else if (isKind(Kind.LSQUARE)) {
+            e = exp_pixel_selector();
         } else {
-            throw new SyntaxException("syntax error");
+            e = pixel_func_expr();
         };
 
         return e;   //return expression object for AST
     }
+
+    ColorChannel channel_selector() throws LexicalException, SyntaxException {
+        //check red, grn, or blu reserved word and return proper color channel
+        if (isKind(Kind.COLON)) {
+            consume();
+            if (isKind(Kind.RES_red)) {
+                return ColorChannel.red;
+            } else if (isKind(Kind.RES_grn)) {
+                return ColorChannel.grn;
+            } else if (isKind(Kind.RES_blu)) {
+                return ColorChannel.blu;
+            } else {
+                throw new SyntaxException("syntax error");
+            }
+        } else {
+            throw new SyntaxException("syntax error");
+        }
+    }
+
+    PixelSelector pixel_selector() throws LexicalException, SyntaxException {
+        IToken firstToken = t;  //save current token
+        Expr x = null;          //initialize expressions
+        Expr y = null; 
+
+        //expanded pixel selector should be [ , ] with expressions in between
+        if (isKind(Kind.LSQUARE)) {
+            consume();
+            x = expr();
+            if (isKind(Kind.COMMA)) {
+                consume();
+                y = expr();
+                if (isKind(Kind.RSQUARE)) {
+                    consume();
+                } else {
+                    throw new SyntaxException("syntax error");
+                }
+            } else {
+                throw new SyntaxException("syntax error");
+            }
+        } else {
+            throw new SyntaxException("syntax error");
+        }
+
+        //return expanded pixel expression object
+        return new PixelSelector(firstToken, x, y);
+    }
+
+    Expr exp_pixel_selector() throws LexicalException, SyntaxException {
+        IToken firstToken = t;  //save current token
+        Expr x = null;          //initialize expressions
+        Expr y = null;
+        Expr z = null; 
+
+        //expanded pixel selector should be [ , , ] with expressions in between
+        if (isKind(Kind.LSQUARE)) {
+            consume();
+            x = expr();
+            if (isKind(Kind.COMMA)) {
+                consume();
+                y = expr();
+                if (isKind(Kind.COMMA)) {
+                    consume();
+                    z = expr();
+                    if (isKind(Kind.RSQUARE)) {
+                        consume();
+                    } else {
+                        throw new SyntaxException("syntax error");
+                    }
+                } else {
+                    throw new SyntaxException("syntax error");
+                }
+            } else {
+                throw new SyntaxException("syntax error");
+            }
+        } else {
+            throw new SyntaxException("syntax error");
+        }
+
+        //return expanded pixel expression object
+        return new ExpandedPixelExpr(firstToken, x, y, z);
+    }
+
+    Expr pixel_func_expr() throws LexicalException, SyntaxException {
+        IToken firstToken = t;  //save current token
+        Kind function = null;          //initialize expressions
+        PixelSelector selector = null; 
+
+        //check which reserved word and save as kind
+        if (isKind(Kind.RES_x_cart)) {
+            consume();
+            function = Kind.RES_x_cart;
+        } else if (isKind(Kind.RES_y_cart)) {
+            consume();
+            function = Kind.RES_y_cart;
+        } else if (isKind(Kind.RES_a_polar)) {
+            consume();
+            function = Kind.RES_a_polar;
+        } else if (isKind(Kind.RES_r_polar)) {
+            consume();
+            function = Kind.RES_r_polar;
+        } else {
+            throw new SyntaxException("syntax error");
+        }
+
+        //next token is pixel selector
+        selector = pixel_selector();
+
+        //return pixel function expression object
+        return new PixelFuncExpr(firstToken, function, selector);
+    }
+
+    Dimension dimension() throws LexicalException, SyntaxException {
+        IToken firstToken = t;  //save current token
+        Expr width = null;      //initialize expressions
+        Expr height = null;
+
+        //dimension should be [ , ] with expressions in between
+        if (isKind(Kind.LSQUARE)) {
+            consume();
+            width = expr();
+            if (isKind(Kind.COMMA)) {
+                consume();
+                height = expr();
+                if (isKind(Kind.RSQUARE)) {
+                    consume();
+                } else {
+                    throw new SyntaxException("syntax error");
+                }
+            } else {
+                throw new SyntaxException("syntax error");
+            }
+        } else {
+            throw new SyntaxException("syntax error");
+        }
+
+        //return dimension object
+        return new Dimension(firstToken, width, height);
+    }
+
+    LValue l_value() throws LexicalException, SyntaxException {
+        IToken firstToken = t;  //save current token
+        Ident ident = null;             //initialize expressions
+        PixelSelector pixel = null;
+	    ColorChannel color = null;
+
+        //save first token as ident
+        ident = new Ident(firstToken);
+
+        //if token is left bracket, next token is pixel selector
+        if (isKind(Kind.LSQUARE)) {
+            pixel = pixel_selector();
+        }
+
+        //if token is colon, next token is channel selector
+        if (isKind(Kind.COLON)) {
+            color = channel_selector();
+        }
+
+        //return LValue object
+        return new LValue(firstToken, ident, pixel, color);
+    }
+
+    Statement statement() throws LexicalException, SyntaxException {
+        IToken firstToken = t;  //save current token
+        LValue l = null;        //initialize expressions
+        Expr e = null;
+        Block b = null;
+
+        //if token is write, return write expression
+        if (isKind(Kind.RES_write)) {
+            consume();
+            e = expr();
+            return new WriteStatement(firstToken, e);
+        }
+
+        //if token is while, return while expression
+        if (isKind(Kind.RES_while)) {
+            consume();
+            e = expr();
+            b = block();
+            return new WhileStatement(firstToken, e, b);
+        }
+
+        //if not, must be assignment statement
+        l = l_value();
+        if (isKind(Kind.EQ)) {
+            consume();
+            e = expr();
+            return new AssignmentStatement(firstToken, l, e);
+        } else {
+            throw new SyntaxException("syntax error");
+        }
+
+    }
+
 }
