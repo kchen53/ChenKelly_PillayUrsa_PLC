@@ -95,7 +95,7 @@ public class Parser implements IParser {
     Block block() throws SyntaxException, LexicalException {
         IToken firstToken = t;
         List<Declaration> decList = new ArrayList<>();
-        List<Statement> statementList = new ArrayList<>();;
+        List<Statement> statementList = new ArrayList<>();
 
         if(isKind(Kind.LSQUARE)) {
             decList.add(declaration());
