@@ -1,10 +1,6 @@
 package edu.ufl.cise.plcsp23;
-import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.junit.platform.engine.support.discovery.EngineDiscoveryRequestResolver.InitializationContext;
-
 import edu.ufl.cise.plcsp23.IToken.Kind;
 import edu.ufl.cise.plcsp23.ast.AST;
 import edu.ufl.cise.plcsp23.ast.AssignmentStatement;
@@ -45,7 +41,7 @@ public class Parser implements IParser {
     }
 
     public AST parse() throws PLCException {
-        return expr();
+        return program();
     }
 
     protected boolean isKind(Kind kind) {   //check kind of current token
@@ -62,112 +58,127 @@ public class Parser implements IParser {
 
     //Program::=  Type IDENT ( ParamList ) Block
     Program program() throws SyntaxException, LexicalException {
-
-        IToken FirstToken = t;
-        List<NameDef> paramList = new ArrayList<>();
+        IToken firstToken = t;
         Type type = null;
-        Block b = null;
         Ident i = null;
+        List<NameDef> paramList = null;
+        Block b = null;
 
         type = type();
 
         if(isKind(Kind.IDENT)){
-            i = new Ident(FirstToken);
+            i = new Ident(t);
+            consume();
             if (isKind(Kind.LPAREN)) {
-                paramList.add(nameDef());
+                consume();
+                paramList = ParamList();
                 if (isKind(Kind.RPAREN)) {
+                    consume();
                     b = block();
-                    return new Program(FirstToken, type, i, paramList, b);
+                    if (!isKind(Kind.EOF)) {
+                        throw new SyntaxException("syntax error");
+                    }
                 } else {
                     throw new SyntaxException("syntax error");
                 }
-            }
-            else {
+            } else {
                 throw new SyntaxException("syntax error");
             }
-        }
-        else {
+        } else {
             throw new SyntaxException("syntax error");
         }
+
+        return new Program(firstToken, type, i, paramList, b);
     }
 
     //Block ::= { DecList  StatementList }
     Block block() throws SyntaxException, LexicalException {
         IToken firstToken = t;
-        List<Declaration> decList = new ArrayList<>();
-        List<Statement> statementList = new ArrayList<>();
+        List<Declaration> decList = null;
+        List<Statement> statementList = null;
 
-        if(isKind(Kind.LSQUARE)) {
-            decList.add(declaration());
-            statementList.add(statement());
-            if(isKind(Kind.RSQUARE)){
-                return new Block(firstToken, decList, statementList);
-            }
-            else{
+        if(isKind(Kind.LCURLY)) {
+            consume();
+            decList = decList();
+            statementList = StatementList();
+            if(isKind(Kind.RCURLY)){
+                consume();
+            } else {
                 throw new SyntaxException("syntax error");
             }
-        }
-        else{
+        } else {
             throw new SyntaxException("syntax error");
         }
+
+        return new Block(firstToken, decList, statementList);
     }
 
     //DecList ::= ( Declaration . )*
-    Declaration DecList() throws SyntaxException, LexicalException {
-        IToken firstToken = t;
-        NameDef n = null;
-        Expr e = null;
+    List<Declaration> decList() throws SyntaxException, LexicalException {
+        List<Declaration> declarations = new ArrayList<>();
 
-        n = nameDef();
-        if(isKind(Kind.DOT)){
-            e = expr();
-            return new Declaration(firstToken, n, e);
+        if (!isKind(Kind.IDENT) && !isKind(Kind.RES_write) && !isKind(Kind.RES_while) && !isKind(Kind.RCURLY)) {
+            try {
+                while((isType(Type.IMAGE)) || (isType(Type.INT)) || (isType(Type.PIXEL)) || (isType(Type.STRING)) || (isType(Type.VOID))){
+                    declarations.add(declaration());
+                    if (isKind(Kind.DOT)) {
+                        consume();
+                    } else {
+                        throw new SyntaxException("syntax error");
+                    }
+    
+                    if(isKind(Kind.IDENT) || isKind(Kind.RES_write) || isKind(Kind.RES_while) || isKind(Kind.RCURLY)) {
+                        return declarations;
+                    }
+                }
+            } catch (Exception runException) {
+                throw new SyntaxException("syntax error");
+            }
         }
-        else{
-            throw new SyntaxException("syntax error");
-        }
+
+        return declarations;
 
     }
 
     //StatementList ::= ( Statement . ) *
-    Statement StatementList() throws SyntaxException, LexicalException {
-        Statement s = null;
+    List<Statement> StatementList() throws SyntaxException, LexicalException {
+        List<Statement> statements = new ArrayList<>();
 
-        if(isKind(Kind.DOT)){
-            s = statement();
-            return s;
+        if ((!isKind(Kind.RCURLY))) {
+            while(isKind(Kind.IDENT) || isKind(Kind.RES_write) || isKind(Kind.RES_while)){
+                statements.add(statement());
+                if (isKind(Kind.DOT)) {
+                    consume();
+                } else {
+                    throw new SyntaxException("syntax error");
+                }
+
+                if ((isKind(Kind.RCURLY))) {
+                    return statements;
+                }
+            }
         }
-        else{
-            throw new SyntaxException("syntax error");
-        }
+
+        return statements;
     }
 
     //ParamList ::= ε |  NameDef  ( , NameDef ) *
-    NameDef ParamList() throws SyntaxException, LexicalException {
-        IToken firstToken = t;
-        NameDef left = null;
-        NameDef right = null;
-        Type type = null;
-        Dimension d = null;
-        Ident i = null;
+    List<NameDef> ParamList() throws SyntaxException, LexicalException {
+        List<NameDef> nameDefs = new ArrayList<>();
 
-        left = nameDef();
-        if(!isKind(Kind.COMMA)){
-            return left;
+        if ((isKind(Kind.RPAREN))) {
+            return nameDefs;
         }
 
-        while(isKind(Kind.COMMA)){
-            if(isKind(Kind.COMMA)){
-                right = nameDef();
-                type = type();
-                d = dimension();
-                i = new Ident(firstToken);
-            }
-            else{
-                throw new SyntaxException("syntax error");
+        if ((isType(Type.IMAGE)) || (isType(Type.INT)) || (isType(Type.PIXEL)) || (isType(Type.STRING)) || (isType(Type.VOID))) {
+            nameDefs.add(nameDef());
+            while(isKind(Kind.COMMA)){
+                consume();
+                nameDefs.add(nameDef());
             }
         }
-        return new NameDef(firstToken, type, d, i);
+
+        return nameDefs;
     }
 
     //NameDef ::= Type IDENT | Type Dimension IDENT
@@ -180,12 +191,14 @@ public class Parser implements IParser {
         type = type();
 
         if(isKind(Kind.IDENT)){
-            i = new Ident(firstToken);
-            d = dimension();
+            i = new Ident(t);
+            consume();
             return new NameDef(firstToken, type, d, i);
-        }
-        else{
-            throw new SyntaxException("syntax error");
+        } else {
+            d = dimension();
+            i = new Ident(t);
+            consume();
+            return new NameDef(firstToken, type, d, i);
         }
     }
     
@@ -193,23 +206,13 @@ public class Parser implements IParser {
     Type type() throws SyntaxException, LexicalException {
         Type type = null;
 
-        //if the type is Image, Int, Pixel, String, or Void
-        if(isType(Type.IMAGE)){
-            type = Type.IMAGE;
-        }
-        if(isType(Type.INT)){
-            type = Type.INT;
-        }
-        if(isType(Type.PIXEL)){
-            type = Type.PIXEL;
-        }
-        if(isType(Type.STRING)){
-            type = Type.STRING;
-        }
-        else {
-            type = Type.VOID;
+        try {
+            type = Type.getType(t);
+        } catch (Exception runException) {
+            throw new SyntaxException("syntax error");
         }
 
+        consume();
         return type; //return type
     }
 
@@ -222,13 +225,13 @@ public class Parser implements IParser {
         n = nameDef();
 
         //if token has an expression
-        if (isKind(Kind.EQ)) {
+        if (isKind(Kind.ASSIGN)) {
+            consume();
             e = expr();
             return new Declaration(firstToken, n, e);
-        } else {
-            //if the token is just the name def
-            return new Declaration(firstToken, n, e);
         }
+
+        return new Declaration(firstToken, n, e);
 
     }
 
@@ -523,7 +526,7 @@ public class Parser implements IParser {
             e = unary_expr();
         } else {
             //if token is not operator, return single primary expression
-            return primary_expr();
+           return unary_expr_post();
         }
 
         //return unary expression object for AST
@@ -544,6 +547,10 @@ public class Parser implements IParser {
 
         if (isKind(Kind.COLON)) {
             color = channel_selector();
+        }
+
+        if ((pixel == null) && (color == null)) {
+            return primary;
         }
 
         return new UnaryExprPostfix(firstToken, primary, pixel, color);
@@ -603,10 +610,13 @@ public class Parser implements IParser {
         if (isKind(Kind.COLON)) {
             consume();
             if (isKind(Kind.RES_red)) {
+                consume();
                 return ColorChannel.red;
             } else if (isKind(Kind.RES_grn)) {
+                consume();
                 return ColorChannel.grn;
             } else if (isKind(Kind.RES_blu)) {
+                consume();
                 return ColorChannel.blu;
             } else {
                 throw new SyntaxException("syntax error");
@@ -743,7 +753,12 @@ public class Parser implements IParser {
 	    ColorChannel color = null;
 
         //save first token as ident
-        ident = new Ident(firstToken);
+        if (isKind(Kind.IDENT)) {
+            ident = new Ident(t);
+            consume();
+        } else {
+            throw new SyntaxException("syntax error");
+        }
 
         //if token is left bracket, next token is pixel selector
         if (isKind(Kind.LSQUARE)) {
@@ -770,24 +785,20 @@ public class Parser implements IParser {
             consume();
             e = expr();
             return new WriteStatement(firstToken, e);
-        }
-
-        //if token is while, return while expression
-        if (isKind(Kind.RES_while)) {
+        } else if (isKind(Kind.RES_while)) { //if token is while, return while expression
             consume();
             e = expr();
             b = block();
             return new WhileStatement(firstToken, e, b);
-        }
-
-        //if not, must be assignment statement
-        l = l_value();
-        if (isKind(Kind.EQ)) {
-            consume();
-            e = expr();
-            return new AssignmentStatement(firstToken, l, e);
         } else {
-            throw new SyntaxException("syntax error");
+            l = l_value(); //if not, must be assignment statement
+            if (isKind(Kind.ASSIGN)) {
+                consume();
+                e = expr();
+                return new AssignmentStatement(firstToken, l, e);
+            } else {
+                throw new SyntaxException("syntax error");
+            }
         }
 
     }
