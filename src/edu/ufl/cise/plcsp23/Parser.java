@@ -60,6 +60,7 @@ public class Parser implements IParser {
         t = scan.next();
     }
 
+    //Program::=  Type IDENT ( ParamList ) Block
     Program program() throws SyntaxException, LexicalException {
 
         IToken FirstToken = t;
@@ -73,10 +74,8 @@ public class Parser implements IParser {
         if(isKind(Kind.IDENT)){
             i = new Ident(FirstToken);
             if (isKind(Kind.LPAREN)) {
-                consume();
                 paramList.add(nameDef());
                 if (isKind(Kind.RPAREN)) {
-                    consume();
                     b = block();
                     return new Program(FirstToken, type, i, paramList, b);
                 } else {
@@ -92,6 +91,7 @@ public class Parser implements IParser {
         }
     }
 
+    //Block ::= { DecList  StatementList }
     Block block() throws SyntaxException, LexicalException {
         IToken firstToken = t;
         List<Declaration> decList = new ArrayList<>();
@@ -112,6 +112,7 @@ public class Parser implements IParser {
         }
     }
 
+    //DecList ::= ( Declaration . )*
     Declaration DecList() throws SyntaxException, LexicalException {
         IToken firstToken = t;
         NameDef n = null;
@@ -128,7 +129,7 @@ public class Parser implements IParser {
 
     }
 
-    // StatementList ::= ( Statement . ) *
+    //StatementList ::= ( Statement . ) *
     Statement StatementList() throws SyntaxException, LexicalException {
         Statement s = null;
 
@@ -141,7 +142,7 @@ public class Parser implements IParser {
         }
     }
 
-    // ParamList ::= ε |  NameDef  ( , NameDef ) *
+    //ParamList ::= ε |  NameDef  ( , NameDef ) *
     NameDef ParamList() throws SyntaxException, LexicalException {
         IToken firstToken = t;
         NameDef left = null;
@@ -169,7 +170,7 @@ public class Parser implements IParser {
         return new NameDef(firstToken, type, d, i);
     }
 
-    // NameDef ::= Type IDENT | Type Dimension IDENT
+    //NameDef ::= Type IDENT | Type Dimension IDENT
     NameDef nameDef() throws SyntaxException, LexicalException{
         IToken firstToken = t;
         Type type = null;
@@ -188,34 +189,31 @@ public class Parser implements IParser {
         }
     }
     
+    //Type ::= image | pixel | int | string | void
     Type type() throws SyntaxException, LexicalException {
         Type type = null;
 
         //if the type is Image, Int, Pixel, String, or Void
         if(isType(Type.IMAGE)){
-            consume();
             type = Type.IMAGE;
         }
         if(isType(Type.INT)){
-            consume();
             type = Type.INT;
         }
         if(isType(Type.PIXEL)){
-            consume();
             type = Type.PIXEL;
         }
         if(isType(Type.STRING)){
-            consume();
             type = Type.STRING;
         }
         else {
-            consume();
             type = Type.VOID;
         }
 
         return type; //return type
     }
 
+    //Declaration::= NameDef |  NameDef = Expr
     Declaration declaration() throws SyntaxException, LexicalException {
         IToken firstToken = t;
         NameDef n = null;
@@ -225,7 +223,6 @@ public class Parser implements IParser {
 
         //if token has an expression
         if (isKind(Kind.EQ)) {
-            consume();
             e = expr();
             return new Declaration(firstToken, n, e);
         } else {
